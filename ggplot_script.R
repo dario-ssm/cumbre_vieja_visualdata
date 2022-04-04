@@ -16,7 +16,12 @@ library(wesanderson)
 
 ## we will use two datasets related to  La Palma island's Cumbre Vieja 2021 volcanic
 # eruption
+## shortcut to final datasets (UNCOMMENT & RUN if your goal is data visualization)
+ data_cumbre_vieja <- read_csv("data_cumbre_vieja.csv")
+ count_cumbre_vieja <- read_csv("count_cumbre_vieja.csv")
+# IF RUN --> go directly to Section 2.Structure
 
+ ## DO NOT RUN the following if you're not interested in the dataset manipulation process: 
 # ~~ a) dataset 1 ---- 
 # from https://www.ign.es/web/ign/portal/ultimos-terremotos/-/ultimos-terremotos/getAnio 
 earthquakes_2021 <- read_csv("earthquakes_spain_2021.csv") %>% 
@@ -94,14 +99,14 @@ ggplot_object <- ggplot(object, aes(var_x, var_y))+ # aes() is the way we tell R
                         color = ,
                         fill = )+
   geom_smooth()+
-  theme_tipodetema()+
-  labs(title = "nuestro titulo", #prescindibles!
-       subtitle = "nuestro subtitulo", #prescindibles!
-       x = "nombre eje x",
-       y = "nombre eje y"
+  theme_ourpreferredtheme()+
+  labs(title = "Our Title", 
+       subtitle = "Our Subtitle", 
+       x = "x axis name",
+       y = "y axis name"
        )
 
-#  ~~~~ a) scatterplots ------------------------------------------------------------
+#  ~~ a) scatterplots ------------------------------------------------------------
 # we want to visualize how the daily number of earthquakes have varied along eruption periodhas de la erupción
 # geom_point() is our frined
 ggplot(data = count_cumbre_vieja, aes(x = date, y = number))+
@@ -207,13 +212,14 @@ ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
 
 # we can paint the points according to their magnitude (or other variable) values with aes(color = Magnitude) inside the geom_point 
 ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
-  geom_point(aes(color = Magnitude), size =2)+
+  geom_point(aes(color = rev(Depth), size =2))+
   theme_few()
 # and customize with a wesanderson package palette with scale_color_gradientn and a dark theme from ggdark
 ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
-  geom_point(aes(color = Magnitude),size =2)+
-  scale_color_gradientn(colors = wes_palette("Zissou1"))+
-  ggdark::dark_theme_classic()
+  geom_point(aes(color = Depth),size =2)+
+  scale_color_gradientn(colors = rev(wes_palette("Zissou1",)))+
+  ggdark::dark_theme_classic()+
+  labs()
 
 
 # ~~ b) boxplots ----
@@ -242,7 +248,7 @@ ggplot(data = data_cumbre_vieja, aes(x = Region, y = Magnitude))+
   theme(legend.position = "bottom") # or remove it with "none"
 
 # ~~ c) barplots ----
-#vamos a contar el número de terremotos en cada región en el primer dataset
+#let's count the number of earthquakes by region in the first dataset
 
 ggplot(data = count_cumbre_vieja, aes(x = Region, y = number))+
   geom_bar(stat = "identity", aes(fill = Region))+
@@ -276,11 +282,12 @@ library(RColorBrewer)
 library(htmlwidgets)
 
 # a) leaflet ----
-miscolores <- c(2,3,4,5,6)
+## inspired by https://r-graph-gallery.com/19-map-leafletr.html 
+mycolors <- c(2,3,4,5,6)
 mypalette <- colorBin(palette="YlOrBr", 
                       domain=data_cumbre_vieja$Magnitude, 
                       na.color="transparent", 
-                      bins=mybins)
+                      bins=mycolors)
 mytext <- paste(
   "Date: ", data_cumbre_vieja$date,"<br/>", 
   "Magnitude: ", data_cumbre_vieja$Magnitude, "<br/>", 
