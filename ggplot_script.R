@@ -335,16 +335,32 @@ ggplot(shape) +
   theme_map()+
   theme(legend.position = "bottom")
 
-gmap <- ggplot(data = data_cumbre_vieja, aes(x = lon, y = lat)) +
-  geom_sf(data = france)+
-  borders("world", colour = "transparent", fill = "white") +
-  geom_point(aes(colour = Magnitude), alpha = 0.35, size = 3)+
+ggplot() +
+     borders("world", colour = "lightgray", fill = "lightgray") +
+     coord_sf(xlim = c(-18, -17), ylim = c(28, 29), expand = FALSE)+
+     geom_point(alpha = 0.35, size = 3)+theme_classic()+
+     theme_void()+
+     theme(legend.position = "bottom",panel.background = element_rect(fill="transparent",color=NA))
+map
+library(sf)
+library("rnaturalearth")
+library("rnaturalearthdata")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+class(world)
+ggplot(data = world) +
+  geom_sf() +
+  geom_point(data = sites, aes(x = longitude, y = latitude), size = 4, 
+             shape = 23, fill = "darkred") +
+  coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
+map <- ggplot(data = world)+
+  geom_sf()+
+  coord_sf(xlim = c(-18, -17), ylim = c(28, 29), expand = FALSE)+
+  geom_point(data = data_cumbre_vieja, aes(x = Longitude, y = Latitude),
+             alpha = 0.35, size = 3)+
   theme_void()+
   theme(legend.position = "bottom",panel.background = element_rect(fill="transparent",color=NA))
-france <- worldmap[worldmap$name == 'France',]
-geom_sf()
-
-
+map
 # EXTRA: some resources to dive into data visualizartion in handful ways ----
 
 # plenty of useful and smart ideas to visualize your data
