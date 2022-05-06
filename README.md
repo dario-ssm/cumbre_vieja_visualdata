@@ -16,4 +16,4 @@ This repository is open and freely available if anyone finds it useful for teach
    2) To visualize the most useful plots for visualizing the most common data structures and patterns
    3) To translate these tools to your projects
 
-![Mapa de seísmos durante la erupción en La Palma](/screenshot_cumbrevieja.png)
+Ver el visor completo [aquí](https://dario-ssm.github.io/cumbre_vieja_visualdata/)
