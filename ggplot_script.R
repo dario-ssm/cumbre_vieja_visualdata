@@ -36,22 +36,12 @@ earthquakes_2021 <- read_csv("earthquakes_spain_2021.csv") %>%
   filter(year == 2021) %>%  # select only 2021 data
   select(Latitude, Longitude, Depth, Magnitude, `Max. int`, Region, day, date)
 # Now we take subsets to manually change the name of localities to a more useful one
-mazo <- earthquakes_2021 %>% 
-  slice(which(str_detect(Region,"VILLA DE MAZO") == TRUE)) %>% 
-  mutate(Region = "Villa de Mazo")
-fuencaliente <- earthquakes_2021 %>% 
-  slice(which(str_detect(Region,"FUENCALIENTE") == TRUE)) %>% 
-  mutate(Region = "Fuencaliente") 
-tazacorte <- earthquakes_2021 %>% 
-  slice(which(str_detect(Region,"TAZACORTE") == TRUE)) %>% 
-  mutate(Region = "Tazacorte") 
-paso <- earthquakes_2021 %>% 
-  slice(which(str_detect(Region,"EL PASO") == TRUE)) %>% 
-  mutate(Region = "El Paso") 
-# and ensemble them
-earthquakes_2021_canarias <- mazo %>% 
-  bind_rows(fuencaliente, tazacorte, paso)
-view(earthquakes_2021_canarias)
+ earthquakes_2021_canarias <- earthquakes_2021 %>% 
+  mutate(Region = case_when(str_detect(Region,"VILLA DE MAZO") == TRUE ~"Villa de mazo",
+                            str_detect(Region,"FUENCALIENTE") == TRUE ~"Fuencaliente" ,
+                            str_detect(Region,"TAZACORTE") == TRUE ~"Tazacorte" ,
+                            str_detect(Region,"EL PASO") == TRUE ~"El Paso" )) %>% 
+print()
 
 #now let's collapse air quality data from the same period
 # source: https://datos-lapalma.opendata.arcgis.com/datasets/lapalma::registros-calidad-aire-1/explore 
@@ -155,12 +145,12 @@ colores_region <- ggplot(data = count_cumbre_vieja, aes(x = date, y = number))+
 colores_region
 # add lines
 colores_region_line <- colores_region+
-  geom_line(aes(color = Region), size = 1)
+  geom_line(aes(color = Region), linewidth = 1)
 colores_region_line
 # add smooths and save
 colores_region_line_smooth <- colores_region_line+
-  geom_smooth(color = "mediumorchid3",
-              fill = "mediumorchid4")
+  geom_smooth(color = "orange3",
+              fill = "orange2")
 colores_region_line_smooth
 # we see that, contrary to lines, only one smooth is displayed.
 # to plot one for each region, we input color argument inside an aes()
@@ -170,13 +160,17 @@ colores_region_line_smooth <- colores_region_line+
 colores_region_line+
   geom_smooth(aes(color = Region, fill = Region))
 
-# but this plot ios too overlapped. Better divide them into facets
+# but this plot is too overlapped. Better divide them into facets
 colores_region_line+
   geom_line(aes(color = Region), size = 1)+
   geom_smooth(color = "goldenrod3",
               fill = "goldenrod3")+
   facet_wrap(.~ Region)
-
+# but now we're interested on coloring each smooth with its corresponding Region color
+colores_region_line+
+  geom_line(aes(color = Region), size = 1)+
+  geom_smooth(aes(color = Region))+
+  facet_wrap(.~ Region)
 ## let's examine sulphur dioxide levels (which are associated to eruptive processes)
 so2 <- ggplot(data = count_cumbre_vieja, aes(x = date, y = so2))+
   geom_point(color = "turquoise4")
@@ -218,8 +212,7 @@ ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
 ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
   geom_point(aes(color = Depth),size =2)+
   scale_color_gradientn(colors = rev(wes_palette("Zissou1",)))+
-  ggdark::dark_theme_classic()+
-  labs()
+  ggdark::dark_theme_classic()
 
 
 # ~~ b) boxplots ----
@@ -242,12 +235,35 @@ ggplot(data = data_cumbre_vieja, aes(x = Region, y = Magnitude))+
   theme_classic()
 
 # let's place the legend in the bottom
-ggplot(data = data_cumbre_vieja, aes(x = Region, y = Magnitude))+
+boxplots_magnitud <- ggplot(data = data_cumbre_vieja, aes(x = Region, y = Magnitude))+
   geom_boxplot(color = "lightgray",aes(fill = Region))+
   theme_classic()+
   theme(legend.position = "bottom") # or remove it with "none"
+boxplots_magnitud
+# and let's invert the axis
+boxplots_magnitud+
+  coord_flip()
 
-# ~~ c) barplots ----
+# ~~ c) rainplots ----
+library(ggdist)
+region_magnitude_cloudplot <- ggplot(data_cumbre_vieja, aes(x = Region, y = Magnitude,
+                                                            color = Region, fill = Region)) + 
+  ggdist::stat_halfeye(adjust = .5, 
+                       width = .5, ## set slab interval to show IQR and 95% data range
+                       alpha = .5) + 
+  ggdist::stat_dots(side = "left",
+                    dotsize = 0.15,
+                    justification = 1.02,
+                    binwidth = .1
+                    )+
+  coord_cartesian(xlim = c(1, NA))+
+  ggthemes::theme_clean()+
+  labs(x = "Región",
+       y = "Distribución de las magnitudes sísmicas")
+region_magnitude_cloudplot_inv <- region_magnitude_cloudplot+
+  coord_flip()
+
+# ~~ d) barplots ----
 #let's count the number of earthquakes by region in the first dataset
 
 ggplot(data = count_cumbre_vieja, aes(x = Region, y = number))+
@@ -258,19 +274,19 @@ ggplot(data = count_cumbre_vieja, aes(x = Region, y = number))+
   scale_fill_manual(values = wes_palette("Darjeeling1",4,"discrete"))+
   theme_minimal()
 
-#  ~~ d) histograms & density curves ----
+#  ~~ e) histograms & density curves ----
 ## to see distribution of our data
 ggplot(data = data_cumbre_vieja, aes(x = Magnitude))+
   geom_histogram()+
   theme_classic()
 
-ggplot(data = data_cumbre_vieja, aes(x = Magnitude))+
+histogram_magnitudes <- ggplot(data = data_cumbre_vieja, aes(x = Magnitude))+
   geom_histogram(binwidth = 0.1, bins = 100)+ # we can adjust the width and the number of bars
   theme_classic()
 
 # or plot it as a density function (fill argument is not necessary)
 ggplot(data = data_cumbre_vieja, aes(x = Magnitude))+
-  geom_density(fill = "turquoise4")+
+  geom_density(fill = "turquoise4", alpha =.5)+
   theme_classic()
 
 # 3. Some maps ----
@@ -309,10 +325,12 @@ lapalma_earthquakes_maps <- leaflet(data = data_cumbre_vieja) %>%
                                                        style = list("font-weight" = "normal", padding = "3px 8px"), 
                                                        textsize = "13px", 
                                                        direction = "auto"))%>% 
-                                    addProviderTiles('Esri.WorldImagery') %>%
+                                    addProviderTiles('OpenStreetMap.DE') %>%
                                     addLegend(pal=mypalette, values=~Magnitude, opacity=0.9, title = "Magnitude", position = "bottomleft")
 saveWidget(lapalma_earthquakes_maps,
            file=paste0(getwd(),"/lapalma_earthquakes_maps.html"))
+# other providers: night lights (low resolution) -> NASAGIBS.ViirsEarthAtNight2012
+#  CyclOSM, OpenStreetMap.DE
 
 # b) ggmap? ----
 # library(sf)
@@ -323,7 +341,9 @@ saveWidget(lapalma_earthquakes_maps,
 #   theme_bw()
 library(mapSpain)
 country <- esp_get_country()
-shape <- esp_get_ccaa_siane(ccaa = "Canarias")
+shape <- esp_get_ccaa(ccaa = "Canarias")
+esp_get_can_box()
+shape
 ggplot(shape) +
   geom_point(data = data_cumbre_vieja, aes(x = Longitude, y = Latitude, color = Magnitude))+
   geom_sf(fill = "lightgrey", color = "lightgrey") +
@@ -342,25 +362,41 @@ ggplot() +
      theme_void()+
      theme(legend.position = "bottom",panel.background = element_rect(fill="transparent",color=NA))
 map
-library(sf)
-library("rnaturalearth")
-library("rnaturalearthdata")
 
-world <- ne_countries(scale = "medium", returnclass = "sf")
-class(world)
-ggplot(data = world) +
-  geom_sf() +
-  geom_point(data = sites, aes(x = longitude, y = latitude), size = 4, 
-             shape = 23, fill = "darkred") +
-  coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
-map <- ggplot(data = world)+
-  geom_sf()+
-  coord_sf(xlim = c(-18, -17), ylim = c(28, 29), expand = FALSE)+
-  geom_point(data = data_cumbre_vieja, aes(x = Longitude, y = Latitude),
+
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+land <- st_read("/Users/dario/Downloads/ne_10m_land/ne_10m_land.shp") 
+ocean <- st_read("/Users/dario/Downloads/ne_10m_ocean/ne_10m_ocean.shp") 
+coastline <- st_read("/Users/dario/Downloads/ne_10m_coastline/ne_10m_coastline.shp")
+xrange <- c(min(data_cumbre_vieja$Longitude),max(data_cumbre_vieja$Longitude))
+yrange <- c(min(data_cumbre_vieja$Latitude),max(data_cumbre_vieja$Latitude))
+xrange_large <- c(min(data_cumbre_vieja$Longitude)-0.3,max(data_cumbre_vieja$Longitude)+0.3)
+yrange_large <- c(min(data_cumbre_vieja$Latitude)-0.2, max(data_cumbre_vieja$Latitude)+0.2)
+satelite <- raster("/Users/dario/Downloads/NE1_HR_LC_SR_W/NE1_HR_LC_SR_W.tif") 
+satelite_tl <- as(satelite, "SpatialPixelsDataFrame") %>% 
+  as_tibble()
+
+palette <- RColorBrewer::brewer.pal(name = "YlOrBr", n = 15)
+#save(satelite_tl, file = "~/satelite_tl.RData")
+map <- ggplot()+
+ # geom_raster(data = satelite)+
+  geom_sf(data = land, fill = "#d3d5d4")+
+  geom_sf(data = ocean, fill = "#61a5c2")+
+  geom_sf(data =coastline, color = "#006d77")+
+  coord_sf(xlim = xrange,
+           ylim = yrange)+
+  geom_point(data = data_cumbre_vieja, 
+             aes(x = Longitude, y = Latitude,
+                 color = Magnitude),
              alpha = 0.35, size = 3)+
-  theme_void()+
+  ggthemes::theme_map()+
+  scale_color_gradient(low = "#ffba08", 
+                       high = "#6a040f")+
   theme(legend.position = "bottom",panel.background = element_rect(fill="transparent",color=NA))
 map
+
 # EXTRA: some resources to dive into data visualizartion in handful ways ----
 
 # plenty of useful and smart ideas to visualize your data
@@ -371,6 +407,9 @@ https://link.springer.com/book/10.1007/978-0-387-98141-3
 https://r4ds.had.co.nz/ 
 # Graph caveats:
 https://www.data-to-viz.com/caveats.html
+
+# colors
+https://coolors.co/palettes/popular/ocean
 
 # How to add uncertainty (error bars, pointranges, etc):
 http://www.sthda.com/english/wiki/ggplot2-error-bars-quick-start-guide-r-software-and-data-visualization
